@@ -1,11 +1,14 @@
 1
-5 5 2 2
+5 5
 #.#.#
 .....
 #.#.#
 .....
-#.#.#
-hint 1
-hint 2
-hint 3
-hint 4
+#.##.
+2
+itsy bitsy
+teenie winnie
+3
+honolulu
+strand
+bikini
