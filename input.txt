@@ -3,12 +3,11 @@
 #.#.#
 .....
 #.#.#
-.....
-#.##.
+#....
+#.###
 2
-itsy bitsy
-teenie winnie
-3
-honolulu
-strand
-bikini
+Holder, possesor
+Top of the house
+2
+Sneezy, Happy or Grumpy
+Style of many a Miami Beach building
