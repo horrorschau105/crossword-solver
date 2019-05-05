@@ -3,7 +3,12 @@ import numpy as np
 from fastText import util
 from collections import namedtuple
 from Queue import PriorityQueue
+from sys import argv, exit
+from math import sqrt
 
+MAX_SOLUTIONS = 10
+VERTICAL = 'vertical'
+HORIZONTAL = 'horizontal'
 HolePosition = namedtuple("HolePosition", "x y direction length")
 Hole = namedtuple("Hole", "position clue")
 CrosswordInstance = namedtuple("CrosswordInstance", "rank crossword next_hole")
@@ -27,7 +32,7 @@ def get_cells(hp):
     
     cells = []
     for i in range(hp.length):
-        if hp.direction == 'vertical':
+        if hp.direction == VERTICAL:
             cells.append((hp.x + i, hp.y))
         else:
             cells.append((hp.x, hp.y + i))
@@ -51,8 +56,15 @@ def get_connected_holes(fixed, holes):
                 count += 1
                 break
  
-    return (count, -fixed.position.length)
+    return (-count, -fixed.position.length)
 
+def normalize_vector(vector):
+    """
+    Return L2-normalized vector
+    """
+    norm = sum(value * value for value in vector)
+    return vector / sqrt(norm)
+    
 def get_positions(grid, h, w):
     """
     Returns all HolePositions for the grid
@@ -68,7 +80,7 @@ def get_positions(grid, h, w):
                     length += 1
                     index += 1
                 if length > 1:
-                    holes.append(HolePosition(i, j, 'vertical', length))
+                    holes.append(HolePosition(i, j, VERTICAL, length))
             if (j == 0 or grid[i][j-1] == '#') and grid[i][j] == '.' :
                 length = 0
                 index = j
@@ -76,17 +88,17 @@ def get_positions(grid, h, w):
                     length += 1
                     index += 1
                 if length > 1:
-                    holes.append(HolePosition(i, j, 'horizontal', length))
+                    holes.append(HolePosition(i, j, HORIZONTAL, length))
     return holes
 
-def find_nearest_words_ids_for_hint(model, text):
+def find_nearest_words_ids_for_hint(all_vectors, model, text):
     """
+    all_vectors is matrix with vectors
     model is loaded fastText model
     text is a sentence
     """
 
-    hint_vector = model.get_sentence_vector(text)
-    all_vectors = model.get_output_matrix()
+    hint_vector = normalize_vector(model.get_sentence_vector(text))
 
     similarity_vector = np.matmul(all_vectors, hint_vector)
 
@@ -118,7 +130,7 @@ def get_pattern_from_crossword(crossword, position):
     result = []
     i,j = position.x, position.y
     for index in range(position.length):
-        if position.direction == 'vertical':
+        if position.direction == VERTICAL:
             result.append(crossword[i + index][j])
         else:
             result.append(crossword[i][j + index])
@@ -142,7 +154,7 @@ def write_into(crossword, word, position):
     i,j = position.x, position.y
     crossword = [list(row) for row in crossword]
     for index in range(position.length):
-        if position.direction == 'vertical':
+        if position.direction == VERTICAL:
             crossword[i + index][j] = word[index]
         else:
             crossword[i][j + index] = word[index]
@@ -160,20 +172,31 @@ def show_solution(crossword_instance, holes):
     print 'Overall rank: ', crossword_instance.rank
 
 if __name__ == "__main__":
+    if len(argv) == 1:
+        print "Usage: python main.py <input file>"
+        exit(0)
+
+    filename = argv[1]
+
     print "Loading model..."    
     
-    f = fastText.load_model("../result/fil5.bin")
+    model = fastText.load_model("../result/fil5.bin")
 
     wordmap = {}
     index = 0
-    for w in f.get_words():
-        wordmap[index] = (w, f.get_word_vector(w))
+    vectors = []
+    for w in model.get_words():
+        v = normalize_vector(model.get_word_vector(w))
+        wordmap[index] = (w, v)
+        vectors.append(v)
         index += 1
 
+    matrix_of_words = np.array(vectors)
+    
     print "Parsing crossword..."
     lines = ""
 
-    with open("input.txt") as file_input:
+    with open(filename) as file_input:
         lines = [line[:-1] for line in file_input.readlines()]
     
     h, w = [int(n) for n in lines[0].split(' ')]
@@ -184,15 +207,16 @@ if __name__ == "__main__":
     vhc, vh = int(lines[0]), lines[1:] # vertical hints and count
 
     positions = get_positions(grid, h, w)
-    if len([key for key in positions if key.direction == 'vertical']) != vhc or len([key for key in positions if key.direction == 'horizontal']) != hhc:
-        print "Cos jest nie tak z krzyzowka"
+    if len([key for key in positions if key.direction == VERTICAL]) != vhc or len([key for key in positions if key.direction == HORIZONTAL]) != hhc:
+        print "Number of holes in crossword doesn't correspond to number of given hints!"
+        exit(0)
 
     sorted_positions = sorted(positions, cmp=compare_plain_holes)
 
     holes = []
     v_idx, h_idx = 0, 0
     for position in sorted_positions:
-        if position.direction == 'vertical':
+        if position.direction == VERTICAL:
             holes.append(Hole(position, vh[v_idx]))
             v_idx += 1
         else:
@@ -203,30 +227,41 @@ if __name__ == "__main__":
     clues_count = vhc + hhc
 
     fitting_words_for_holes = []
-
+    print 'Getting possible answers...'
     for i in range(clues_count):
-        fitting_words_for_holes.append(get_word_list(wordmap, find_nearest_words_ids_for_hint(f, holes[i].clue), holes[i].position.length))
+        fitting_words_for_holes.append(get_word_list(wordmap, find_nearest_words_ids_for_hint(matrix_of_words, model, holes[i].clue), holes[i].position.length))
+
+    # showing first 10 answers
+    #for i in range(len(fitting_words_for_holes)):
+    #    print holes[i].clue, ' '.join(ans.word for ans in fitting_words_for_holes[i][:10])
 
     solution_count = 0
 
     queue = PriorityQueue()
     queue.put(CrosswordInstance(0, grid, 0))
 
-    while not queue.empty():
-        first = queue.get()
+    print 'Solving crossword...'
+    iterations = 0
 
-        if first.next_hole == clues_count:
-            show_solution(first, holes)
+    while not queue.empty():
+        iterations += 1
+
+        if iterations % 100 == 0:
+            print iterations
+        front = queue.get()
+
+        if front.next_hole == clues_count:
+            show_solution(front, holes)
 
             solution_count += 1
-            if solution_count > 100000:
+            if solution_count > MAX_SOLUTIONS:
                 break
             
         else:
-            pattern = get_pattern_from_crossword(first.crossword, holes[first.next_hole].position)
+            pattern = get_pattern_from_crossword(front.crossword, holes[front.next_hole].position)
 
-            has_good_pattern = [word for word in fitting_words_for_holes[first.next_hole] if fit_pattern(pattern, word.word)]
+            has_good_pattern = [word for word in fitting_words_for_holes[front.next_hole] if fit_pattern(pattern, word.word)]
 
-            for word in has_good_pattern:
-                new_crossword = write_into(first.crossword, word.word, holes[first.next_hole].position)
-                queue.put(CrosswordInstance(first.rank - word.rank, new_crossword, first.next_hole + 1))
+            for answer in has_good_pattern:
+                new_crossword = write_into(front.crossword, answer.word, holes[front.next_hole].position)
+                queue.put(CrosswordInstance(front.rank - answer.rank, new_crossword, front.next_hole + 1))
