@@ -1,8 +1,9 @@
 from collections import namedtuple
+from solution_importer import get_solution, Solution
 VERTICAL = 'vertical'
 HORIZONTAL = 'horizontal'
 HolePosition = namedtuple("HolePosition", "x y direction length")
-Hole = namedtuple("Hole", "position clue")
+Hole = namedtuple("Hole", "position clue answer")
 Crossword = namedtuple("Crossword", "grid hints")
 
 def compare_plain_holes(hole_position1, hole_position2):
@@ -77,10 +78,12 @@ def get_positions(grid, h, w):
     return holes
 
 
-def get_crossword(filename):
+def get_crossword(filename, solution_filename = None):
     lines = ""
+    solutions = []
     with open(filename) as file_input:
         lines = [line[:-1] for line in file_input.readlines()]
+    
     
     h, w = [int(n) for n in lines[0].split(' ')]
     lines = lines[1:]
@@ -94,18 +97,23 @@ def get_crossword(filename):
         print "Number of holes in crossword doesn't correspond to number of given hints!"
         exit(0)
 
-    sorted_positions = sorted(positions, cmp=compare_plain_holes)
+    positions = sorted(positions, cmp=compare_plain_holes)
+    
+    if solution_filename is not None:
+        solutions = get_solution(solution_filename)
+    else:
+        solutions = Solution(['' for i in range(hhc)], ['' for i in range(vhc)])
 
     holes = []
     v_idx, h_idx = 0, 0
-    for position in sorted_positions:
+    for position in positions:
         if position.direction == VERTICAL:
-            holes.append(Hole(position, vertical_hints[v_idx]))
+            holes.append(Hole(position, vertical_hints[v_idx], solutions.vertical[v_idx]))
             v_idx += 1
         else:
-            holes.append(Hole(position, horizontal_hints[h_idx]))
+            holes.append(Hole(position, horizontal_hints[h_idx], solutions.horizontal[h_idx]))
             h_idx += 1
 
-    holes = sorted(holes, key=lambda hole: get_connected_holes(hole, holes))
+    #holes = sorted(holes, key=lambda hole: get_connected_holes(hole, holes))
 
     return Crossword(grid, holes)

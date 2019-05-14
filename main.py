@@ -5,43 +5,9 @@ from sys import argv, exit
 from collections import namedtuple
 from crossword_parser import get_crossword, VERTICAL, HORIZONTAL
 from model_loader import get_model, normalize_vector
+from resolver import get_fitting_words, fit_pattern
 MAX_SOLUTIONS = 10
 CrosswordInstance = namedtuple("CrosswordInstance", "rank crossword next_hole")
-Answer = namedtuple("Answer", "word rank")
-
-    
-
-def find_nearest_words_ids_for_hint(all_vectors, model, text):
-    """
-    all_vectors is matrix with vectors
-    model is loaded fastText model
-    text is a sentence
-    """
-
-    hint_vector = normalize_vector(model.get_sentence_vector(text))
-
-    similarity_vector = np.matmul(all_vectors, hint_vector)
-
-    result_vector = []
-    index = 0
-    for result in similarity_vector:
-        result_vector.append( (index, result))
-        index += 1
-
-    return sorted(result_vector, key=lambda tuple: -tuple[1])
-
-def get_word_list(wordmap, ids, word_length):
-    """
-    wordmap is a map int -> string
-    ids is a list of ids
-    word_length is a length of word to fit it into crossword
-    """
-
-    result_list = []
-    for (id, rank) in ids:
-        if len(wordmap[id][0]) == word_length:
-            result_list.append(Answer(wordmap[id][0], rank))
-    return result_list
 
 def get_pattern_from_crossword(crossword, position):
     """
@@ -56,16 +22,6 @@ def get_pattern_from_crossword(crossword, position):
             result.append(crossword[i][j + index])
     return ''.join(result)
 
-def fit_pattern(pattern, word):
-    """
-    Checks if given word fits to the pattern
-    """
-    if len(pattern) != len(word):
-        return False
-    for i in range(len(pattern)):
-        if pattern[i] != '.' and pattern[i] != word[i]:
-            return False
-    return True
 
 def write_into(crossword, word, position):
     """
@@ -109,12 +65,7 @@ if __name__ == "__main__":
     
     print 'Getting possible answers...'
     
-    fitting_words_for_holes = []
-    for i in range(len(crossword.hints)):
-        clue = crossword.hints[i].clue
-        position = crossword.hints[i].position
-        fitting_words_for_holes.append(get_word_list(model.map, find_nearest_words_ids_for_hint(model.matrix, model.fastText_model, clue), position.length))
-
+    fitting_words_for_holes = get_fitting_words(crossword, model)
     # showing first 10 answers
     #for i in range(len(fitting_words_for_holes)):
     #    print holes[i].clue, ' '.join(ans.word for ans in fitting_words_for_holes[i][:10])
