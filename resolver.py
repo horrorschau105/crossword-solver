@@ -47,12 +47,12 @@ def fit_pattern(pattern, word):
             return False
     return True
 
-def get_fitting_words(crossword, model):
+def get_fitting_words(crossword, model, method):
     fitting_words = []
     for hint in crossword.hints:
         clue = hint.clue
         length = hint.position.length
-        sentence_vector = model.fastText_model.get_sentence_vector(clue)
+        sentence_vector = method(model, clue)
         fitting_words.append(
             get_fitting_words_for_single_clue(crossword, model, sentence_vector, length))
             

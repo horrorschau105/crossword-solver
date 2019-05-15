@@ -4,10 +4,13 @@ from Queue import PriorityQueue
 from sys import argv, exit
 from collections import namedtuple
 from crossword_parser import get_crossword, VERTICAL, HORIZONTAL
-from model_loader import get_model, normalize_vector
+from model_loader import get_model, normalize_vector, get_model_from_vector_list
 from resolver import get_fitting_words, fit_pattern
+from frequencies import get_frequencies
 MAX_SOLUTIONS = 10
 CrosswordInstance = namedtuple("CrosswordInstance", "rank crossword next_hole")
+top100 = []
+freq_map = {}
 
 def get_pattern_from_crossword(crossword, position):
     """
@@ -47,6 +50,12 @@ def show_solution(crossword_instance, holes):
     print 'Used words: ', [get_pattern_from_crossword(crossword_instance.crossword, hole.position) for hole in holes]
     print 'Overall rank: ', crossword_instance.rank
 
+def ban100_log_norm(model, clue):
+    global top100, freq_map
+    subwords = [w for w in clue.split(' ') if w not in top100]
+    return sum(model.own_model[w] / np.log(freq_map[w]) if w in freq_map else model.own_model[w] for w in subwords ) / len(subwords)
+
+
 if __name__ == "__main__":
     if len(argv) < 3:
         print "Usage: python main.py <model file> <crossword file>"
@@ -57,18 +66,23 @@ if __name__ == "__main__":
 
     print "Loading model..."    
     
-    model = get_model(model_filename)
+    #model = get_model(model_filename)
+    model = get_model_from_vector_list(model_filename)
     
     print "Parsing crossword..."
-    
+
     crossword = get_crossword(crossword_filename)
+
+    print "Importing word frequences..."
+
+    freq_map, top100 = get_frequencies(100)
     
     print 'Getting possible answers...'
     
-    fitting_words_for_holes = get_fitting_words(crossword, model)
+    fitting_words_for_holes = get_fitting_words(crossword, model, ban100_log_norm)
     # showing first 10 answers
-    #for i in range(len(fitting_words_for_holes)):
-    #    print holes[i].clue, ' '.join(ans.word for ans in fitting_words_for_holes[i][:10])
+    for i in range(len(fitting_words_for_holes)):
+        print crossword.hints[i].clue, ' '.join(ans.word for ans in fitting_words_for_holes[i][:10])
 
     solution_count = 0
 
