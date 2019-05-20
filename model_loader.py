@@ -35,7 +35,6 @@ def get_model_from_vector_list(filename):
     with open(filename) as f:
         lines = [l[:-1] for l in f.readlines()]
     
-    #n, length =  map(int, lines[0].split(' '))
     all_vectors = lines[1:]
     vectors, wordmap = [], {}
     model = {}
@@ -50,6 +49,3 @@ def get_model_from_vector_list(filename):
         idx += 1
         
     return Model(wordmap, np.array(vectors), [], model)
-
-    # TODO 
-    # * solver krzyzowkowy nie dziala

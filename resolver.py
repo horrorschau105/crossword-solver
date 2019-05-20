@@ -23,7 +23,7 @@ def find_nearest_words_ids_for_vector(all_vectors, model, vector):
 
     return sorted(result_vector, key=lambda tuple: -tuple[1])
 
-def get_word_list(wordmap, ids, word_length):
+def get_word_list(wordmap, ids, word_length, clue):
     """
     wordmap is a map int -> string
     ids is a list of ids
@@ -31,8 +31,10 @@ def get_word_list(wordmap, ids, word_length):
     """
 
     result_list = []
+    clue = clue.split(' ')
     for (id, rank) in ids:
-        if len(wordmap[id][0]) == word_length:
+        word = wordmap[id][0]
+        if len(word) == word_length and word.lower() == word and all(char not in word for char in ['.', ',', ':', '?', '/', '!']) and word not in clue:
             result_list.append(Answer(wordmap[id][0], rank))
     return result_list
 
@@ -50,14 +52,15 @@ def fit_pattern(pattern, word):
 def get_fitting_words(crossword, model, method):
     fitting_words = []
     for hint in crossword.hints:
-        clue = hint.clue
+        clue = hint.clue.replace('.', '').replace(',', '').lower()
         length = hint.position.length
         sentence_vector = method(model, clue)
         fitting_words.append(
-            get_fitting_words_for_single_clue(crossword, model, sentence_vector, length))
-            
+            get_fitting_words_for_single_clue(crossword, model, sentence_vector, length, clue))
 
     return fitting_words
     
-def get_fitting_words_for_single_clue(crossword, model, sentence_vector, length):
-    return get_word_list(model.map, find_nearest_words_ids_for_vector(model.matrix, model.fastText_model, sentence_vector), length)
+def get_fitting_words_for_single_clue(crossword, model, sentence_vector, length, clue):
+    return get_word_list(model.map, 
+    find_nearest_words_ids_for_vector(model.matrix, model.fastText_model, sentence_vector), length,
+    clue)

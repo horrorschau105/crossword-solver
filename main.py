@@ -9,6 +9,7 @@ from resolver import get_fitting_words, fit_pattern
 from frequencies import get_frequencies
 MAX_SOLUTIONS = 10
 CrosswordInstance = namedtuple("CrosswordInstance", "rank crossword next_hole")
+HoleWithPossibilities = namedtuple("HoleWithPossibilities", "hole list")
 top100 = []
 freq_map = {}
 
@@ -52,9 +53,12 @@ def show_solution(crossword_instance, holes):
 
 def ban100_log_norm(model, clue):
     global top100, freq_map
-    subwords = [w for w in clue.split(' ') if w not in top100]
+    subwords = [w for w in clue.split(' ') if w not in top100 and w in model.own_model]
     return sum(model.own_model[w] / np.log(freq_map[w]) if w in freq_map else model.own_model[w] for w in subwords ) / len(subwords)
 
+def order(possibilities):
+    # tutaj zalutować jakieś fajne sortowanie dziur, by bylo szybko
+    return possibilities
 
 if __name__ == "__main__":
     if len(argv) < 3:
@@ -66,7 +70,6 @@ if __name__ == "__main__":
 
     print "Loading model..."    
     
-    #model = get_model(model_filename)
     model = get_model_from_vector_list(model_filename)
     
     print "Parsing crossword..."
@@ -79,11 +82,20 @@ if __name__ == "__main__":
     
     print 'Getting possible answers...'
     
-    fitting_words_for_holes = get_fitting_words(crossword, model, ban100_log_norm)
-    # showing first 10 answers
-    for i in range(len(fitting_words_for_holes)):
-        print crossword.hints[i].clue, ' '.join(ans.word for ans in fitting_words_for_holes[i][:10])
+    possibilities = []
+    idx = 0
+    for fitting in get_fitting_words(crossword, model, ban100_log_norm):
+        possibilities.append(HoleWithPossibilities(crossword.hints[idx], fitting))
+        print crossword.hints[idx].clue, fitting[0].rank
+        idx += 1
+    
+    possibilities = order(possibilities)
 
+    #MAX_POSSIBILITIES = 30
+    #WORST_SIMILARITY = (min(arr.list[MAX_POSSIBILITIES].rank for arr in possibilities))
+    #print 'Worst similarity:', WORST_SIMILARITY
+
+    WORST_SIMILARITY = 0.5
     solution_count = 0
 
     queue = PriorityQueue()
@@ -95,9 +107,11 @@ if __name__ == "__main__":
     while not queue.empty():
         iterations += 1
 
-        if iterations % 100 == 0:
+        if iterations % 1000 == 0:
             print iterations
         front = queue.get()
+
+        #print front.crossword
 
         if front.next_hole == len(crossword.hints):
             show_solution(front, crossword.hints)
@@ -109,8 +123,12 @@ if __name__ == "__main__":
         else:
             pattern = get_pattern_from_crossword(front.crossword, crossword.hints[front.next_hole].position)
 
-            has_good_pattern = [word for word in fitting_words_for_holes[front.next_hole] if fit_pattern(pattern, word.word)]
+            has_good_pattern = [word for word in possibilities[front.next_hole].list if fit_pattern(pattern, word.word) and word.rank >= WORST_SIMILARITY]
 
             for answer in has_good_pattern:
                 new_crossword = write_into(front.crossword, answer.word, crossword.hints[front.next_hole].position)
                 queue.put(CrosswordInstance(front.rank - answer.rank, new_crossword, front.next_hole + 1))
+
+    # TODO 
+    # * alez to laguje (340k opcji i bez rozwiazania)
+    # * przywroc sortowanie pozycji wg uwiklania
