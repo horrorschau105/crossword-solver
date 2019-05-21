@@ -2,6 +2,8 @@ import numpy as np
 import fastText
 from math import sqrt
 from collections import namedtuple
+import pickle
+from os.path import isfile
 Model = namedtuple("Model", "map matrix fastText_model own_model")
 
 
@@ -14,6 +16,11 @@ def normalize_vector(vector):
 
 def get_model(filename):
 
+    pickled_filename = filename.replace('.vec', '.po')
+    if isfile(pickled_filename):
+        with open(pickled_filename,'rb') as f:
+            return pickle.load(f)
+    
     model = fastText.load_model(filename)
 
     wordmap = {}
@@ -27,10 +34,22 @@ def get_model(filename):
 
     matrix_of_words = np.array(vectors)
 
-    return Model(wordmap, matrix_of_words, model, [])
+    model = Model(wordmap, matrix_of_words, model, [])
+
+    print 'Model pickled to:', pickled_filename
+    with open(pickled_filename, 'wb') as f:
+        pickle.dump(model, f)
+
+    return model
 
 def get_model_from_vector_list(filename):
     filename.replace('.bin', '.vec')
+
+    pickled_filename = filename.replace('.vec', '.po')
+    if isfile(pickled_filename):
+        with open(pickled_filename,'rb') as f:
+            return pickle.load(f)
+    
     lines = ""
     with open(filename) as f:
         lines = [l[:-1] for l in f.readlines()]
@@ -48,4 +67,11 @@ def get_model_from_vector_list(filename):
         model[word] = v
         idx += 1
         
-    return Model(wordmap, np.array(vectors), [], model)
+    model = Model(wordmap, np.array(vectors), [], model)
+    
+    print 'Model pickled to:', pickled_filename
+    with open(pickled_filename, 'wb') as f:
+        pickle.dump(model, f)
+
+    return model
+    

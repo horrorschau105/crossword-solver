@@ -34,7 +34,11 @@ def get_word_list(wordmap, ids, word_length, clue):
     clue = clue.split(' ')
     for (id, rank) in ids:
         word = wordmap[id][0]
-        if len(word) == word_length and word.lower() == word and all(char not in word for char in ['.', ',', ':', '?', '/', '!']) and word not in clue:
+        if len(word) == word_length and \
+            word.lower() == word \
+            and all(char not in word for char in ['.', ',', ':', '?', '/', '!']) :
+            #and word not in clue \
+            
             result_list.append(Answer(wordmap[id][0], rank))
     return result_list
 
