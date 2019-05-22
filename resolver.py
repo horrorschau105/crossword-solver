@@ -36,8 +36,8 @@ def get_word_list(wordmap, ids, word_length, clue):
         word = wordmap[id][0]
         if len(word) == word_length and \
             word.lower() == word \
-            and all(char not in word for char in ['.', ',', ':', '?', '/', '!']) :
-            #and word not in clue \
+            and all(char not in word for char in ['.', ',', ':', '?', '/', '!']) \
+            and word not in clue :
             
             result_list.append(Answer(wordmap[id][0], rank))
     return result_list
@@ -53,12 +53,12 @@ def fit_pattern(pattern, word):
             return False
     return True
 
-def get_fitting_words(crossword, model, method):
+def get_fitting_words(crossword, model, method, freq_map, banned_words):
     fitting_words = []
     for hint in crossword.hints:
         clue = hint.clue.replace('.', '').replace(',', '').lower()
         length = hint.position.length
-        sentence_vector = method(model, clue)
+        sentence_vector = method(model, clue, freq_map, banned_words)
         fitting_words.append(
             get_fitting_words_for_single_clue(crossword, model, sentence_vector, length, clue))
 
