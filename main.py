@@ -144,7 +144,7 @@ if __name__ == "__main__":
     queue = PriorityQueue()
     empty_crossword = CrosswordInstance(get_rating(crossword.grid, 0, []), crossword.grid, 0, [])
     queue.put(empty_crossword)
-    MAX_SOLUTIONS = 10000
+    MAX_SOLUTIONS = 1000
     solution_count = 0
     best_rank = 0
     best_crossword = None
