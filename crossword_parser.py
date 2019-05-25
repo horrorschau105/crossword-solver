@@ -17,40 +17,6 @@ def compare_plain_holes(hole_position1, hole_position2):
         return -1
     return 1
 
-
-# def get_cells(hp):
-#     """
-#     Given position of hole, returns list of cells belonging to the hole
-#     """
-    
-#     cells = []
-#     for i in range(hp.length):
-#         if hp.direction == VERTICAL:
-#             cells.append((hp.x + i, hp.y))
-#         else:
-#             cells.append((hp.x, hp.y + i))
-
-#     return cells
-
-# def get_connected_holes(fixed, holes):
-#     """
-#     For fixed hole calculates, how many holes crosses the fixed hole.
-#     """
-
-#     count = 0
-#     fixed_cells = get_cells(fixed.position)
-
-#     for hole in holes:
-#         if hole.position.direction == fixed.position.direction:
-#             continue
-        
-#         for cell in get_cells(hole.position):
-#             if cell in fixed_cells:
-#                 count += 1
-#                 break
- 
-#     return (-count, -fixed.position.length)
-
 def get_positions(grid, h, w):
     """
     Returns all HolePositions for the grid

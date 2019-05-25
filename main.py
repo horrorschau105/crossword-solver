@@ -52,8 +52,8 @@ def show_solution(crossword_instance, holes):
     print 'Overall rank: ', sum(crossword_instance.word_ranks) / len(crossword_instance.word_ranks)
 
 def ban100_log_norm(model, clue, freq_map, top100):
-    subwords = [w for w in clue.split(' ') if w not in top100 and w in model.own_model]
-    #subwords = [w for w in clue.split(' ') if w not in top100]
+    words = [w for w in clue.lower().replace('.', '').replace(',', '').split(' ') if w != ' ']
+    subwords = [w for w in words if w not in top100 and w in model.own_model]
     return sum(model.own_model[w] / np.log(freq_map[w]) if w in freq_map else model.own_model[w] for w in subwords ) / len(subwords)
 
 def get_hash(grid):
@@ -144,7 +144,9 @@ if __name__ == "__main__":
     queue = PriorityQueue()
     empty_crossword = CrosswordInstance(get_rating(crossword.grid, 0, []), crossword.grid, 0, [])
     queue.put(empty_crossword)
-    MAX_SOLUTIONS = 1000
+    #MAX_SOLUTIONS = 1000
+    MAX_ITERATIONS_WITHOUT_BETTER_SOLUTION = 20000
+    last_iteration_with_solution = 0
     solution_count = 0
     best_rank = 0
     best_crossword = None
@@ -163,9 +165,11 @@ if __name__ == "__main__":
                 best_rank = rank
                 best_crossword = front
                 best_crossword_value = sum(front.word_ranks) / len(front.word_ranks)
+                print 'Found better solution:', best_crossword_value, 'in iteration:', iterations
+                last_iteration_with_solution = iterations
 
             solution_count += 1
-            if solution_count > MAX_SOLUTIONS:
+            if best_crossword_value > 0 and last_iteration_with_solution + MAX_ITERATIONS_WITHOUT_BETTER_SOLUTION < iterations:
                 break
         else:
             index = front.depth
@@ -177,10 +181,5 @@ if __name__ == "__main__":
                 queue.put(CrosswordInstance(rating, new_crossword, front.depth + 1, front.word_ranks + [answer.rank]))
     print 'Total iterations', iterations
     show_solution(best_crossword, fitting_words_for_holes)
-                
-    
-    """
-    Najlepsze rozwiazanie daje 0.6212, jedyne bledy to coercive / criminal i eaten / lunch
-    moze podzial na 2 programy, jeden generuje slowa do krzyzowki, drugi tylko rozwiazuje (pypy!)
-    Spawac heure, musi byc dobra
-    """
+
+    # w jaki sposob konczyc przeszukiwanie? 10000 rozwiazan bez poprawy?

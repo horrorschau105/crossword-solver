@@ -70,8 +70,8 @@ if __name__ == "__main__":
         #average, 
         ban100_freq_log_square_norm,
         #ban100, 
-        #freq_log_norm, 
-        freq_log_square_norm,
+        freq_log_norm, 
+        #freq_log_square_norm,
         #freq_loglog_norm, 
         ban100_log_norm
         ]
@@ -93,7 +93,7 @@ if __name__ == "__main__":
             precision += 1.0 / result[0]
         #print
         precision /= len(crossword.hints)
-        print 'Precision:', round(precision,3) ,'Avg position:', round(mean(positions), 3), "st. dev.:", round(std(positions),3), "\tAvg rank:", round(mean(ranks), 3), "std:", round(std(ranks), 3)
+        print 'Precision:', round(precision,3) ,'Avg position:', round(mean(positions), 3), "\tAvg rank:", round(mean(ranks), 10), 
         print
 
     # TODO
