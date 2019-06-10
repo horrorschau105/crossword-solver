@@ -46,8 +46,10 @@ def show_solution(crossword_instance, holes):
     #for row in crossword_instance.crossword:
     #    print row.replace('#', '.')
     print 'Used words: '
+    idx = 0
     for hole in holes:
-        print hole.clue, get_pattern_from_crossword(crossword_instance.crossword, hole.position)
+        print hole.clue, get_pattern_from_crossword(crossword_instance.crossword, hole.position), crossword_instance.word_ranks[idx]
+        idx += 1
 
     print 'Overall rank: ', sum(crossword_instance.word_ranks) / len(crossword_instance.word_ranks)
 
@@ -137,7 +139,7 @@ if __name__ == "__main__":
 
     #MAX_WORDS_PER_HINT = 200
     #fitting_words = [l.words[:MAX_WORDS_PER_HINT] for l in fitting_words_for_holes]
-    WORST_SIMILARITY = 0.4
+    WORST_SIMILARITY = 0.39
     fitting_words = [[word for word in l.words if word.rank >= WORST_SIMILARITY] for l in fitting_words_for_holes]
 
     print 'Solving crossword...'
@@ -145,7 +147,7 @@ if __name__ == "__main__":
     empty_crossword = CrosswordInstance(get_rating(crossword.grid, 0, []), crossword.grid, 0, [])
     queue.put(empty_crossword)
     #MAX_SOLUTIONS = 1000
-    MAX_ITERATIONS_WITHOUT_BETTER_SOLUTION = 20000
+    MAX_ITERATIONS_WITHOUT_BETTER_SOLUTION = 50000
     last_iteration_with_solution = 0
     solution_count = 0
     best_rank = 0
@@ -156,7 +158,7 @@ if __name__ == "__main__":
         front = queue.get()
         
         iterations += 1
-        if iterations % 1000 == 0:
+        if iterations % 2000 == 0:
             print iterations, front.rating, queue.qsize(), solution_count, best_crossword_value
         
         if front.depth == len(crossword.hints):

@@ -15,7 +15,7 @@ def ban100(model, clue):
     
 def ban100_log_norm(model, clue):
     global top100, freq_map
-    subwords = [w for w in clue.split(' ') if w not in top100]
+    subwords = [w for w in clue.split(' ') if w not in top100 and w != '']
     return sum(model.own_model[w] / log(freq_map[w]) if w in freq_map else model.own_model[w] for w in subwords ) / len(subwords)
     
 def freq_log_norm(model, clue):
@@ -68,9 +68,9 @@ if __name__ == "__main__":
     tested_methods = [
         #fastText_sentence_vector, 
         #average, 
-        ban100_freq_log_square_norm,
+        #ban100_freq_log_square_norm,
         #ban100, 
-        freq_log_norm, 
+        #freq_log_norm, 
         #freq_log_square_norm,
         #freq_loglog_norm, 
         ban100_log_norm
