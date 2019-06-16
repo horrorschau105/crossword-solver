@@ -1,7 +1,7 @@
 from numpy import float32
-def get_frequencies(k):
+def get_frequencies(filename, k):
     lines = ""
-    with open('../freq.txt') as f:
+    with open(filename) as f:
         lines = [line[:-1].replace(' ', '').split('\t') for line in f.readlines() ]
 
     freqs, banned = {}, []

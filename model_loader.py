@@ -36,10 +36,6 @@ def get_model(filename):
 
     model = Model(wordmap, matrix_of_words, model, [])
 
-    #print 'Model pickled to:', pickled_filename
-    #with open(pickled_filename, 'wb') as f:
-    #    pickle.dump(model, f)
-
     return model
 
 def get_model_from_vector_list(filename):
@@ -71,10 +67,6 @@ def get_model_from_vector_list(filename):
             print 'Loaded', idx, 'words'
         
     model = Model(wordmap, np.array(vectors), [], model)
-    
-    #print 'Model pickled to:', pickled_filename
-    #with open(pickled_filename, 'wb') as f:
-    #    pickle.dump(model, f)
 
     return model
     

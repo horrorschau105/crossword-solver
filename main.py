@@ -43,12 +43,10 @@ def show_solution(crossword_instance, holes):
     Prints crossword and final rank
     """
     print
-    #for row in crossword_instance.crossword:
-    #    print row.replace('#', '.')
     print 'Used words: '
     idx = 0
     for hole in holes:
-        print hole.clue, get_pattern_from_crossword(crossword_instance.crossword, hole.position), crossword_instance.word_ranks[idx]
+        print hole.clue, ":\t", get_pattern_from_crossword(crossword_instance.crossword, hole.position), crossword_instance.word_ranks[idx]
         idx += 1
 
     print 'Overall rank: ', sum(crossword_instance.word_ranks) / len(crossword_instance.word_ranks)
@@ -57,6 +55,11 @@ def ban100_log_norm(model, clue, freq_map, top100):
     words = [w for w in clue.lower().replace('.', '').replace(',', '').split(' ') if w != ' ']
     subwords = [w for w in words if w not in top100 and w in model.own_model]
     return sum(model.own_model[w] / np.log(freq_map[w]) if w in freq_map else model.own_model[w] for w in subwords ) / len(subwords)
+
+def average(model, clue, freq_map, top100):
+    words = [w for w in clue.lower().replace('.', '').replace(',', '').split(' ') if w != ' ']
+    subwords = [w for w in words if w in model.own_model]
+    return sum(model.own_model[w] for w in subwords ) / len(subwords)
 
 def get_hash(grid):
     return hash(''.join(grid))
@@ -115,12 +118,18 @@ def get_rating(crossword, depth, word_ranks):
 
 if __name__ == "__main__":
     if len(argv) < 3:
-        print "Usage: python main.py <vector file> <crossword file>"
-        print "eg. pythom main.py fil5.vec 5x5.crossword"
+        print "Usage: python main.py <vector file> <crossword file> <frequencies file>"
+        print "eg. python main.py fil5.vec 5x5.crossword ../freq.txt"
         exit(0)
 
-    model_filename, crossword_filename = argv[1], argv[2]
+    model_filename, crossword_filename, frequences_filename = None, None, None
 
+    if len(argv) == 3:
+        model_filename, crossword_filename = argv[1], argv[2]
+
+    elif len(argv) == 4:
+        model_filename, crossword_filename, frequences_filename = argv[1], argv[2], argv[3]
+    
     print "Loading model..."    
     
     model = get_model_from_vector_list(model_filename)
@@ -129,16 +138,17 @@ if __name__ == "__main__":
 
     crossword = get_crossword(crossword_filename)
 
-    print "Importing word frequences..."
-
-    freq_map, top100 = get_frequencies(100)
+    sentence_vector_method = average
+    freq_map, top100 = None, None
+    if frequences_filename is not None:
+        print "Importing word frequences..."
+        freq_map, top100 = get_frequencies(frequences_filename, 100)
+        sentence_vector_method = ban100_log_norm
     
     print 'Getting possible answers...'
     
-    fitting_words_for_holes = order_holes( match_words_to_holes(crossword, model, ban100_log_norm, freq_map, top100))
+    fitting_words_for_holes = order_holes( match_words_to_holes(crossword, model, sentence_vector_method, freq_map, top100))
 
-    #MAX_WORDS_PER_HINT = 200
-    #fitting_words = [l.words[:MAX_WORDS_PER_HINT] for l in fitting_words_for_holes]
     WORST_SIMILARITY = 0.39
     fitting_words = [[word for word in l.words if word.rank >= WORST_SIMILARITY] for l in fitting_words_for_holes]
 
@@ -146,7 +156,6 @@ if __name__ == "__main__":
     queue = PriorityQueue()
     empty_crossword = CrosswordInstance(get_rating(crossword.grid, 0, []), crossword.grid, 0, [])
     queue.put(empty_crossword)
-    #MAX_SOLUTIONS = 1000
     MAX_ITERATIONS_WITHOUT_BETTER_SOLUTION = 50000
     last_iteration_with_solution = 0
     solution_count = 0
@@ -183,5 +192,3 @@ if __name__ == "__main__":
                 queue.put(CrosswordInstance(rating, new_crossword, front.depth + 1, front.word_ranks + [answer.rank]))
     print 'Total iterations', iterations
     show_solution(best_crossword, fitting_words_for_holes)
-
-    # w jaki sposob konczyc przeszukiwanie? 10000 rozwiazan bez poprawy?
