@@ -3,10 +3,10 @@
 Hi, this is a crossword solver I've written for my BSc thesis. 
 
 ## What is needed to run
-- a file with vector for each word in language (i.e. those available on fasttext.cc)
+- a file with vector for each word in language (i.e. those available on https://fasttext.cc)
 - a crossword in specific format (see tests/)
 - a solution to the crossword (for ranker required only. see tests/ for format)
-- a file with word frequencies is optional, but the solver works better with it
+- a file with word frequencies is optional, but the solver works better with it (you can find i.e. here: https://en.wiktionary.org/wiki/Wiktionary:Frequency_lists/PG/2006/04/1-10000
 - python 2.7
 - numpy
 ## Usage
